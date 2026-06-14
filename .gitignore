@@ -1,0 +1,28 @@
+# 编译产物
+build/
+*.o
+*.a
+*.so
+
+# 可执行文件
+RayTracing
+
+# 生成的图片
+*.ppm
+*.png
+*.jpg
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+
+# 临时文件
+*~
+*.log
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
