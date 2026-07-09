@@ -225,4 +225,5 @@ CMakeFiles/RayTracing.dir/Renderer.cpp.o: \
  /usr/include/c++/11/bits/shared_ptr_atomic.h \
  /usr/include/c++/11/backward/auto_ptr.h \
  /usr/include/c++/11/pstl/glue_memory_defs.h /usr/include/c++/11/ctime \
- /home/sxy/Ray\ Tracing/Ray\ Tracing/code/Renderer.hpp
+ /home/sxy/Ray\ Tracing/Ray\ Tracing/code/Renderer.hpp \
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/omp.h

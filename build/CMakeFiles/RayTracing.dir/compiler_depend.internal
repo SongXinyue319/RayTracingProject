@@ -547,6 +547,7 @@ CMakeFiles/RayTracing.dir/Renderer.cpp.o
  /usr/include/c++/11/pstl/glue_memory_defs.h
  /usr/include/c++/11/ctime
  /home/sxy/Ray Tracing/Ray Tracing/code/Renderer.hpp
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/omp.h
 
 CMakeFiles/RayTracing.dir/Scene.cpp.o
  /home/sxy/Ray Tracing/Ray Tracing/code/Scene.cpp

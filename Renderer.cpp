@@ -5,6 +5,9 @@
 #include <fstream>
 #include "Scene.hpp"
 #include "Renderer.hpp"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 
 inline float deg2rad(const float& deg) { return deg * M_PI / 180.0; }
@@ -21,30 +24,47 @@ void Renderer::Render(const Scene& scene,bool check_mode)
     float scale = tan(deg2rad(scene.fov * 0.5));
     float imageAspectRatio = scene.width / (float)scene.height;
     Vector3f eye_pos(-1, 5, 10);
-    int m = 0;
+    
+    int totalRows = scene.height;
+    int completedRows = 0;
+    int lastPercent = 0;
+
+    #pragma omp parallel for
     for (uint32_t j = 0; j < scene.height; ++j) {
         for (uint32_t i = 0; i < scene.width; ++i) {
-            // TODO: Find the x and y positions of the current pixel to get the
-            // direction vector that passes through it.
-            // Also, don't forget to multiply both of them with the variable
-            // *scale*, and x (horizontal) variable with the *imageAspectRatio*
+            const int SAMPLES = 8;
+            Vector3f color(0,0,0);
 
-            // Don't forget to normalize this direction!
+            for (int s = 0; s < SAMPLES; s++){
+                unsigned int seed = i + j * scene.width + s * 1000;
+                float offsetX = ((float)rand_r(&seed) / RAND_MAX - 0.5f) * 0.5f;
+                float offsetY = ((float)rand_r(&seed) / RAND_MAX - 0.5f) * 0.5f;
 
-            float x = (2.0f * (i + 0.5f) / scene.width - 1.0f) * imageAspectRatio * scale;
-            float y = (1.0f - 2.0f * (j + 0.5f) / scene.height) * scale;
-            Vector3f dir = normalize(Vector3f(x, y, -1));
+                float x = (2.0f * (i + offsetX + 0.5f) / scene.width - 1.0f) * imageAspectRatio * scale;
+                float y = (1.0f - 2.0f * (j + offsetY + 0.5f) / scene.height) * scale;
+                Vector3f dir = normalize(Vector3f(x, y, -1));
+                Ray ray(eye_pos, dir);
+                
+                if (check_mode)
+                    color += scene.castRay_noBVH(ray, 0);
+                else
+                    color += scene.castRay(ray, 0);
+            }
 
-            Ray ray(eye_pos,dir);
-
-
-            if(check_mode)
-                framebuffer[m++] = scene.castRay_noBVH(ray, 0);
-            else
-                framebuffer[m++] = scene.castRay(ray, 0);
-
+            framebuffer[j * scene.width + i] = color / SAMPLES;
         }
-        UpdateProgress(j / (float)scene.height);
+
+        #pragma omp atomic
+        completedRows++;
+
+        #pragma omp critical
+        {
+            int percent = (int)((float)completedRows / (float)scene.height * 100);
+            if (percent > lastPercent) {
+                UpdateProgress((float)percent / 100.0f);
+                lastPercent = percent;
+            }
+        }
     }
     UpdateProgress(1.f);
 

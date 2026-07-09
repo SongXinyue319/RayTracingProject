@@ -156,6 +156,8 @@ RayTracing: CMakeFiles/RayTracing.dir/Scene.cpp.o
 RayTracing: CMakeFiles/RayTracing.dir/BVH.cpp.o
 RayTracing: CMakeFiles/RayTracing.dir/Renderer.cpp.o
 RayTracing: CMakeFiles/RayTracing.dir/build.make
+RayTracing: /usr/lib/gcc/x86_64-linux-gnu/11/libgomp.so
+RayTracing: /usr/lib/x86_64-linux-gnu/libpthread.a
 RayTracing: CMakeFiles/RayTracing.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir="/home/sxy/Ray Tracing/Ray Tracing/code/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable RayTracing"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/RayTracing.dir/link.txt --verbose=$(VERBOSE)

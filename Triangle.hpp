@@ -43,17 +43,29 @@ class Triangle : public Object
 {
 public:
     Vector3f v0, v1, v2; // vertices A, B ,C , counter-clockwise order
+    Vector3f n0, n1, n2; //新增三个顶点的法线
     Vector3f e1, e2;     // 2 edges v1-v0, v2-v0;
     Vector3f t0, t1, t2; // texture coords
-    Vector3f normal;
+    Vector3f normal;     // 面法线
     Material* m;
 
+    //新构造函数包含顶点
+    Triangle(Vector3f _v0, Vector3f _v1, Vector3f _v2, Vector3f _n0, Vector3f _n1, Vector3f _n2, Material* _m = nullptr)
+        : v0(_v0), v1(_v1), v2(_v2), n0(_n0), n1(_n1), n2(_n2), m(_m)
+    {
+        e1 = v1 - v0;
+        e2 = v2 - v0;
+        normal = normalize(crossProduct(e1, e2));
+    }
+
+    //旧构造函数实现向后兼容
     Triangle(Vector3f _v0, Vector3f _v1, Vector3f _v2, Material* _m = nullptr)
         : v0(_v0), v1(_v1), v2(_v2), m(_m)
     {
         e1 = v1 - v0;
         e2 = v2 - v0;
         normal = normalize(crossProduct(e1, e2));
+        n0 = n1 = n2 = normal;
     }
 
     bool intersect(const Ray& ray) override;
@@ -91,19 +103,31 @@ public:
                                      -std::numeric_limits<float>::infinity()};
         for (int i = 0; i < mesh.Vertices.size(); i += 3) {
             std::array<Vector3f, 3> face_vertices;
+            std::array<Vector3f, 3> face_normals; //新增：存储三个顶点的法线
             for (int j = 0; j < 3; j++) {
-                auto vert = Vector3f(mesh.Vertices[i + j].Position.X,
-                                     mesh.Vertices[i + j].Position.Y,
-                                     mesh.Vertices[i + j].Position.Z) *
-                            60.f;
-                face_vertices[j] = vert;
+                auto vert = mesh.Vertices[i + j];
 
-                min_vert = Vector3f(std::min(min_vert.x, vert.x),
-                                    std::min(min_vert.y, vert.y),
-                                    std::min(min_vert.z, vert.z));
-                max_vert = Vector3f(std::max(max_vert.x, vert.x),
-                                    std::max(max_vert.y, vert.y),
-                                    std::max(max_vert.z, vert.z));
+                //读取顶点坐标
+                auto pos = Vector3f(vert.Position.X, vert.Position.Y, vert.Position.Z) * 60.f;
+                face_vertices[j] = pos;
+                
+                //读取顶点法线
+                auto norm = Vector3f(vert.Normal.X, vert.Normal.Y, vert.Normal.Z);
+                face_normals[j] = normalize(norm);
+
+                // // ========== 调试：打印前几个三角形的法线 ==========
+                // if (i < 10) {
+                //     std::cout << "Triangle " << i/3 << ", vertex " << j << " normal: "
+                //             << norm.x << ", " << norm.y << ", " << norm.z << std::endl;
+                // }
+                // // ========== 调试结束 ==========
+
+                min_vert = Vector3f(std::min(min_vert.x, pos.x),
+                                    std::min(min_vert.y, pos.y),
+                                    std::min(min_vert.z, pos.z));
+                max_vert = Vector3f(std::max(max_vert.x, pos.x),
+                                    std::max(max_vert.y, pos.y),
+                                    std::max(max_vert.z, pos.z));
             }
 
             auto new_mat =
@@ -113,8 +137,13 @@ public:
             new_mat->Ks = 0.0;
             new_mat->specularExponent = 0;
 
-            triangles.emplace_back(face_vertices[0], face_vertices[1],
-                                   face_vertices[2], new_mat);
+            //创建三角形时，传入顶点法线
+
+            triangles.emplace_back(
+                face_vertices[0], face_vertices[1], face_vertices[2],
+                face_normals[0], face_normals[1], face_normals[2],
+                new_mat
+            );
         }
 
         bounding_box = Bounds3(min_vert, max_vert);
@@ -216,18 +245,31 @@ inline Bounds3 Triangle::getBounds() { return Union(Bounds3(v0, v1), v2); }
 inline Intersection Triangle::getIntersection(Ray ray)
 {
     Intersection inter;
-    // TODO find ray triangle intersection
-
     float tnear = std::numeric_limits<float>::max();
     float u, v;
 
     if (rayTriangleIntersect(v0, v1, v2, ray.origin, ray.direction, tnear, u, v)) {
         inter.happened = true;
         inter.coords = ray.origin + ray.direction * tnear;
-        inter.normal = normal;
+        inter.normal = normalize(n0 * (1 - u - v) + n1 * u + n2 * v);
         inter.distance = tnear;
         inter.obj = this;
         inter.m = m;
+
+        // 插值顶点法线
+        Vector3f interpolated = normalize(n0 * (1 - u - v) + n1 * u + n2 * v);
+        inter.normal = interpolated;
+
+        // // ========== 调试：打印插值后的法线 ==========
+        // static int debugCount = 0;
+        // if (debugCount++ < 10) {
+        //     std::cout << "Interpolated normal: " 
+        //               << interpolated.x << ", " 
+        //               << interpolated.y << ", " 
+        //               << interpolated.z << std::endl;
+        //     std::cout << "  u=" << u << ", v=" << v << std::endl;
+        // }
+        // // ========== 调试结束 ==========
     }
 
     return inter;
