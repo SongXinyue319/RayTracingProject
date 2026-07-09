@@ -76,9 +76,12 @@ public:
                               const uint32_t& index, const Vector2f& uv,
                               Vector3f& N, Vector2f& st) const override
     {
-        N = normal;
+        //N = normal;
         //        throw std::runtime_error("triangle::getSurfaceProperties not
         //        implemented.");
+        Vector3f pos = v0 * (1 - uv.x - uv.y) + v1 * uv.x + v2 * uv.y;
+        st.x = pos.x * 0.1f;  // 缩放系数控制棋盘格密度
+        st.y = pos.y * 0.1f;
     }
     Vector3f evalDiffuseColor(const Vector2f&) const override;
     Bounds3 getBounds() override;
@@ -87,7 +90,7 @@ public:
 class MeshTriangle : public Object
 {
 public:
-    MeshTriangle(const std::string& filename)
+    MeshTriangle(const std::string& filename, Material* customMat = nullptr)
     {
         objl::Loader loader;
         loader.LoadFile(filename);
@@ -101,9 +104,19 @@ public:
         Vector3f max_vert = Vector3f{-std::numeric_limits<float>::infinity(),
                                      -std::numeric_limits<float>::infinity(),
                                      -std::numeric_limits<float>::infinity()};
+
+        Material* baseMat = customMat;
+        if (!baseMat) {
+            baseMat = new Material(MaterialType::DIFFUSE_AND_GLOSSY,
+                                Vector3f(0.5, 0.5, 0.5), Vector3f(0, 0, 0));
+            baseMat->Kd = 0.6;
+            baseMat->Ks = 0.0;
+            baseMat->specularExponent = 0;
+        }
+
         for (int i = 0; i < mesh.Vertices.size(); i += 3) {
             std::array<Vector3f, 3> face_vertices;
-            std::array<Vector3f, 3> face_normals; //新增：存储三个顶点的法线
+            std::array<Vector3f, 3> face_normals; 
             for (int j = 0; j < 3; j++) {
                 auto vert = mesh.Vertices[i + j];
 
@@ -115,13 +128,6 @@ public:
                 auto norm = Vector3f(vert.Normal.X, vert.Normal.Y, vert.Normal.Z);
                 face_normals[j] = normalize(norm);
 
-                // // ========== 调试：打印前几个三角形的法线 ==========
-                // if (i < 10) {
-                //     std::cout << "Triangle " << i/3 << ", vertex " << j << " normal: "
-                //             << norm.x << ", " << norm.y << ", " << norm.z << std::endl;
-                // }
-                // // ========== 调试结束 ==========
-
                 min_vert = Vector3f(std::min(min_vert.x, pos.x),
                                     std::min(min_vert.y, pos.y),
                                     std::min(min_vert.z, pos.z));
@@ -130,20 +136,19 @@ public:
                                     std::max(max_vert.z, pos.z));
             }
 
-            auto new_mat =
-                new Material(MaterialType::DIFFUSE_AND_GLOSSY,
-                             Vector3f(0.5, 0.5, 0.5), Vector3f(0, 0, 0));
-            new_mat->Kd = 0.6;
-            new_mat->Ks = 0.0;
-            new_mat->specularExponent = 0;
-
-            //创建三角形时，传入顶点法线
-
             triangles.emplace_back(
                 face_vertices[0], face_vertices[1], face_vertices[2],
                 face_normals[0], face_normals[1], face_normals[2],
-                new_mat
+                baseMat   // 使用同一个材质
             );
+
+            // //创建三角形时，传入顶点法线
+
+            // triangles.emplace_back(
+            //     face_vertices[0], face_vertices[1], face_vertices[2],
+            //     face_normals[0], face_normals[1], face_normals[2],
+            //     new_mat
+            // );
         }
 
         bounding_box = Bounds3(min_vert, max_vert);
@@ -259,17 +264,6 @@ inline Intersection Triangle::getIntersection(Ray ray)
         // 插值顶点法线
         Vector3f interpolated = normalize(n0 * (1 - u - v) + n1 * u + n2 * v);
         inter.normal = interpolated;
-
-        // // ========== 调试：打印插值后的法线 ==========
-        // static int debugCount = 0;
-        // if (debugCount++ < 10) {
-        //     std::cout << "Interpolated normal: " 
-        //               << interpolated.x << ", " 
-        //               << interpolated.y << ", " 
-        //               << interpolated.z << std::endl;
-        //     std::cout << "  u=" << u << ", v=" << v << std::endl;
-        // }
-        // // ========== 调试结束 ==========
     }
 
     return inter;

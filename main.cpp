@@ -13,8 +13,16 @@ int main(int argc, char** argv)
 {
     Scene scene(1280, 960);
 
+    auto* texMat = new Material(MaterialType::DIFFUSE_AND_GLOSSY, Vector3f(0, 0, 0));
+    texMat->Kd = 0.8;
+    texMat->Ks = 0.0;
+    texMat->specularExponent = 0;
+    texMat->hasTexture = true;
+
+
     //MeshTriangle bunny("../models/bunny/bunny.obj");
-    MeshTriangle bunny("../models/bunny_zipper/bunny_zipper.obj");
+    MeshTriangle bunny("../models/bunny_zipper/bunny_zipper.obj", texMat);
+    //MeshTriangle bunny("../models/bunny_zipper_res3/bunny_zipper_res3.obj");
 
     scene.Add(&bunny);
     scene.Add(std::make_unique<Light>(Vector3f(-20, 70, 20), 1));

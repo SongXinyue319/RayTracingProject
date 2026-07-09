@@ -131,13 +131,37 @@ Vector3f Scene::castRay(const Ray &ray, int depth) const
                                               m->specularExponent) * get_lights()[i]->intensity;
                     }
                 }
-                hitColor = lightAmt * (hitObject->evalDiffuseColor(st) * m->Kd + specularColor * m->Ks);
+                //hitColor = lightAmt * (hitObject->evalDiffuseColor(st) * m->Kd + specularColor * m->Ks);
+                // 环境光（模拟间接光照）
+                Vector3f ambientColor = getEnvironmentLight(ray);  // 环境光颜色
+                Vector3f ambient = ambientColor * hitObject->evalDiffuseColor(st) * m->Kd * 0.3f;  // 环境光强度0.3
+
+                // 获取纹理颜色
+                Vector3f texColor = m->sampleTexture(st);
+                Vector3f diffuseColor = m->hasTexture ? texColor : hitObject->evalDiffuseColor(st) * m->Kd;
+
+                hitColor = ambient + lightAmt * (diffuseColor + specularColor * m->Ks);
                 break;
             }
         }
     }
+    if (intersection.happened) {
+        return hitColor;
+    }
+    return getEnvironmentLight(ray);
+}
 
-    return hitColor;
+Vector3f Scene::getEnvironmentLight(const Ray& ray) const
+{
+    // 根据光线方向生成渐变色
+    float t = 0.5f * (ray.direction.y + 1.0f);
+    
+    // 顶部颜色（蓝色天空）
+    Vector3f topColor(0.4f, 0.6f, 1.0f);
+    // 底部颜色（暖色地面）
+    Vector3f bottomColor(0.6f, 0.4f, 0.2f);
+    
+    return topColor * t + bottomColor * (1 - t);
 }
 
 

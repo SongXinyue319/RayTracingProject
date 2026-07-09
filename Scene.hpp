@@ -108,4 +108,6 @@ public:
         // As a consequence of the conservation of energy, transmittance is given by:
         // kt = 1 - kr;
     }
+
+    Vector3f getEnvironmentLight(const Ray& ray) const;
 };
